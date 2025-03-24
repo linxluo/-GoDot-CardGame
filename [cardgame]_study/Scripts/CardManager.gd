@@ -1,6 +1,7 @@
 extends Node2D
 
 #01 - 卡牌拖动相关
+#卡牌碰撞MASK
 const COLLISION_MASK_CARD = 1
 #判断哪张卡牌为拖动状态
 var card_being_dragged
@@ -16,6 +17,9 @@ var is_hovering_on_card
 
 var now_hover_card
 
+#03 - 卡槽相关
+#卡槽碰撞MASK
+const COLLISION_MASK_CARD_SLOT = 2
 func _ready() -> void:
 	#01 - 卡牌拖动相关
 	screen_size = get_viewport_rect().size
@@ -46,7 +50,8 @@ func _input(event: InputEvent) -> void:
 		else:
 			print("Left Mouse Button Release")
 			#松开鼠标左键视为取消卡牌拖动状态
-			finish_drag()
+			if card_being_dragged:
+				finish_drag()
 
 func _notification(what) -> void:
 	match what:
@@ -150,10 +155,31 @@ func start_drag(card):
 	pass
 	
 func finish_drag():
+	#02 - 卡牌悬停效果
 	if NOTIFICATION_WM_MOUSE_EXIT:
 		card_being_dragged.scale = Vector2(1,1)
 	else:
 		card_being_dragged.scale = Vector2(1.05,1.05)
+	
+	#03 - 卡槽判断
+	var card_slot_found = raycast_check_for_card_slot()
+	if card_slot_found and not card_slot_found.card_in_slot:
+		card_being_dragged.position = card_slot_found.position
+		#放进卡槽后就不能移动了
+		card_being_dragged.get_node("CardArea2D/CardCollider").disabled = true
+		#当前卡槽是有卡牌了
+		card_slot_found.card_in_slot = true
 	card_being_dragged = null
-
 	pass
+
+#03 - 卡槽相关
+func raycast_check_for_card_slot():
+	var space_state = get_world_2d().direct_space_state
+	var paramters = PhysicsPointQueryParameters2D.new()
+	paramters.position = get_global_mouse_position()
+	paramters.collide_with_areas = true
+	paramters.collision_mask = COLLISION_MASK_CARD_SLOT
+	var result = space_state.intersect_point(paramters)
+	if result.size()>0:
+		return result[0].collider.get_parent()
+	return null
