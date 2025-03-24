@@ -7,6 +7,9 @@ extends Node2D
 signal hovered
 signal hovered_off
 
+#04 - 卡牌手牌
+var hand_position
+
 func _on_card_area_2d_mouse_entered() -> void:
 	#self就是Card
 	emit_signal("hovered",self)
